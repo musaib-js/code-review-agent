@@ -1,0 +1,68 @@
+version: "3.9"
+services:
+  web:
+    build: .
+    container_name: fastapi_app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+      - db
+    networks:
+      - flask_network
+    environment:
+      - PYTHONPATH=/app
+
+  gradio:
+    build: .
+    container_name: gradio_app
+    command: ["python", "agents/ui.py"]
+    ports:
+      - "7860:7860"
+    depends_on:
+      - web
+    networks:
+      - flask_network
+    environment:
+      - PYTHONPATH=/app
+
+  worker:
+    build: .
+    command: ["celery", "-A", "worker", "worker", "--loglevel=info"]
+    depends_on:
+      - redis
+    restart: always
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - PYTHONPATH=/app
+    networks:
+      - flask_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - flask_network
+
+  db:
+    image: "postgres:14-alpine"
+    container_name: postgres
+    environment:
+      POSTGRES_USER: userx
+      POSTGRES_PASSWORD: xpassword
+      POSTGRES_DB: review_db
+    ports:
+      - "5432"
+    networks:
+      - flask_network
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+volumes:
+  pg_data:
+
+networks:
+  flask_network:
+    driver: bridge

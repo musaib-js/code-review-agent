@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+SQLAlchemy
+psycopg2-binary
+pydantic
+python-dotenv
+celery
+langchain
+openai
+requests
+redis
+Flask-SQLAlchemy
+SQLAlchemy
+gradio
+crewai
+markdown2
+weasyprint
