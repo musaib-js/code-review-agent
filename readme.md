@@ -109,24 +109,29 @@ Returns the full JSON review results for the given task ID as follows
 
 ```mermaid
 sequenceDiagram
-    participant Client
+    participant GitHub
     participant API Server
     participant GitHub
     participant CrewAI Agent
     participant Celery Worder
     participant PostgreSQL
 
-    Client->>API Server: POST /analyze with repo_url, pr_number, token
-    API Server->>Client: Send acknowledgment
+    GitHub->>API Server: POST PR Details
+    API Server->>GitHub: Send acknowledgment
     API Server->>Celery Worker: Schedule Review Task
     Celery Worker->>GitHub: Fetch PR diffs file-wise
+    GitHub-->>Celery Worker: Send PR diffs file-wise
     loop for each file
         Celery Worker->>CrewAI Agent: Send review task with file diff
-        CrewAI Agent-->>Celery Worker: Return JSON with issues
+        CrewAI Agent->>CrewAI Agent: Analyse file difference for styling <br> bugs and performance issues
+        CrewAI Agent-->>Celery Worker: Return structured JSON with issues
     end
     Celery Worker-->>PostgreSQL: Save the results
+    Celery Worker-->>GitHub: Add inline comments in the PR based on review
     Client->>API Server: GET /results/{task_id}
     API Server-->>Client: Return full JSON result
+    Gradio->>API Server: GET results for task_id
+    API Server -->> Gradio: Show results in a human readable format
 ```
 
 ---
