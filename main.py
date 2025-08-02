@@ -106,8 +106,8 @@ def get_review_result(task_id: str):
 
 
 @app.post("/webhook")
-def handle_webhook(request: Request):
-    payload = request.json()
+async def handle_webhook(request: Request):
+    payload = await request.json()
     if payload["action"] in ["opened", "synchronize"]:
         repo = payload["repository"]["full_name"]
         pr_number = payload["number"]
