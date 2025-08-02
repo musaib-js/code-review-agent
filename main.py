@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+from pdb import run
+from fastapi import FastAPI, Request
 from pydantic import BaseModel
 from celery_tasks.review import run_pr_review
 from db.database import init_db, SessionLocal
@@ -10,6 +11,7 @@ from fastapi import HTTPException
 from db.models import Review, FileIssue
 from pydantic import BaseModel
 from core.caching import cache_result, get_cached_result
+from core.config import GITHUB_TOKEN
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -101,3 +103,23 @@ def get_review_result(task_id: str):
                 {"file_name": fi.file_name, "issues": fi.issues} for fi in file_issues
             ],
         }
+
+
+@app.post("/webhook")
+def handle_webhook(request: Request):
+    payload = request.json()
+    if payload["action"] in ["opened", "synchronize"]:
+        repo = payload["repository"]["full_name"]
+        pr_number = payload["number"]
+        commit_sha = payload["pull_request"]["head"]["sha"]  
+        token = GITHUB_TOKEN
+
+        
+        task = run_pr_review.delay(
+            repo_url=f"https://github.com/{repo}",
+            pr_number=pr_number,
+            token=token,
+            commit_sha=commit_sha
+        )
+        return {"message": "Review task started", "task_id": task.id}
+    return {"message": "No action taken for this webhook event"}
